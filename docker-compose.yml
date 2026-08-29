@@ -1,0 +1,165 @@
+# Sentinel — full local stack.
+#
+#   docker compose up                              → postgres, redis, api, worker, simulator, web
+#   docker compose --profile observability up      → + prometheus, alertmanager, grafana, otel-collector
+#   docker compose --profile llm up                → + ollama (pulls the model on first start)
+#
+# No paid APIs. No secrets beyond the ones in .env (copy .env.example).
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: infrastructure/docker/Dockerfile.backend
+  image: sentinel/backend:local
+  env_file: [.env]
+  environment:
+    SENTINEL_ENV: prod
+    SENTINEL_LOG_JSON: "true"
+    SENTINEL_DATABASE_URL: postgresql+asyncpg://sentinel:sentinel@postgres:5432/sentinel
+    SENTINEL_REDIS_URL: redis://redis:6379/0
+    SENTINEL_SIMULATOR_URL: http://simulator:9000
+    SENTINEL_OLLAMA_BASE_URL: ${SENTINEL_OLLAMA_BASE_URL:-http://ollama:11434}   # use http://host.docker.internal:11434 for a host Ollama
+    SENTINEL_CORS_ORIGINS: http://localhost:3000
+    SENTINEL_LLM_PROVIDER: ${SENTINEL_LLM_PROVIDER:-none}
+    SENTINEL_AUTO_MIGRATE: "false"
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *backend
+    command: ["sh", "-c", "sentinel migrate && sentinel bootstrap"]
+    restart: "no"
+
+  api:
+    <<: *backend
+    command: ["sentinel", "api", "--host", "0.0.0.0", "--port", "8000"]
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *backend
+    command: ["sentinel", "worker"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "true"]
+
+  simulator:
+    <<: *backend
+    command: ["sentinel-sim", "run", "--port", "9000", "--host", "0.0.0.0"]
+    environment:
+      SIM_SENTINEL_URL: http://api:8000
+      SIM_INGEST_KEY: ${SENTINEL_BOOTSTRAP_INGEST_KEY:-dev-ingest-key}
+      SIM_HOST: 0.0.0.0
+    ports: ["9000-9007:9000-9007"]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./web
+      dockerfile: ../infrastructure/docker/Dockerfile.web
+    image: sentinel/web:local
+    environment:
+      SENTINEL_API_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ---- optional: Prometheus path (rules → Alertmanager → Sentinel webhook) --------------
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    profiles: [observability]
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    ports: ["9090:9090"]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    profiles: [observability]
+    volumes:
+      - ./infrastructure/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports: ["9093:9093"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports: ["3001:3000"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.109.0
+    profiles: [observability]
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./infrastructure/otel/otel-collector.yaml:/etc/otel/config.yaml:ro
+    ports: ["4317:4317", "4318:4318"]
+
+  # ---- optional: local model -------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    profiles: [llm]
+    volumes: [ollama:/root/.ollama]
+    ports: ["11434:11434"]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    profiles: [llm]
+    depends_on:
+      ollama: { condition: service_healthy }
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["sh", "-c", "ollama pull ${SENTINEL_OLLAMA_MODEL:-qwen2.5:7b} && ollama pull ${SENTINEL_OLLAMA_EMBED_MODEL:-nomic-embed-text}"]
+    restart: "no"
+
+volumes:
+  pgdata: {}
+  ollama: {}

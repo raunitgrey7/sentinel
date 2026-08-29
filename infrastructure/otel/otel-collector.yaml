@@ -1,0 +1,32 @@
+# Optional: accept OTLP from real applications and forward to Sentinel's ingestion API.
+# The demo shop pushes directly; this collector is for instrumenting *your* services with
+# the standard OpenTelemetry SDKs and pointing them at otel-collector:4317/4318.
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: sentinel
+          scrape_interval: 15s
+          static_configs: [{ targets: ["api:8000"] }]
+
+processors:
+  batch: { timeout: 5s, send_batch_size: 512 }
+  resource:
+    attributes:
+      - { key: deployment.environment, value: production, action: upsert }
+
+exporters:
+  otlphttp/sentinel:
+    endpoint: http://api:8000/api/v1/otlp
+    headers: { x-api-key: dev-ingest-key }
+  debug: { verbosity: basic }
+
+service:
+  pipelines:
+    traces: { receivers: [otlp], processors: [resource, batch], exporters: [otlphttp/sentinel] }
+    logs: { receivers: [otlp], processors: [resource, batch], exporters: [otlphttp/sentinel] }
+    metrics: { receivers: [otlp, prometheus], processors: [resource, batch], exporters: [debug] }

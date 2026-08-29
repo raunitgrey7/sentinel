@@ -1,0 +1,28 @@
+global:
+  resolve_timeout: 1m
+
+route:
+  receiver: sentinel
+  group_by: ["alertname", "service"]
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+  routes:
+    - receiver: sentinel
+      matchers: ["project = demo-shop"]
+
+inhibit_rules:
+  # a critical error-rate alert inhibits the elevated one for the same service
+  - source_matchers: ["alertname = HighErrorRate"]
+    target_matchers: ["alertname = ElevatedErrorRate"]
+    equal: ["service"]
+
+receivers:
+  - name: sentinel
+    webhook_configs:
+      - url: http://api:8000/api/v1/webhooks/alerts?project=demo-shop
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: dev-ingest-key

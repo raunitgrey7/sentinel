@@ -1,0 +1,41 @@
+{
+  "title": "Sentinel — self-observability",
+  "uid": "sentinel-self",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "type": "stat", "title": "Open incidents", "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 }, "targets": [{ "expr": "sentinel_incidents_open" }] },
+    { "type": "stat", "title": "Queue depth", "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 }, "targets": [{ "expr": "sum(sentinel_queue_depth)" }] },
+    { "type": "stat", "title": "Dead letters (1h)", "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 }, "targets": [{ "expr": "sum(increase(sentinel_dead_letters_total[1h]))" }] },
+    { "type": "stat", "title": "LLM circuit open", "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 }, "targets": [{ "expr": "max(sentinel_circuit_open)" }] },
+    { "type": "stat", "title": "Incidents created (24h)", "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 }, "targets": [{ "expr": "sum(increase(sentinel_incidents_created_total[24h]))" }] },
+    { "type": "stat", "title": "Ingest records/s", "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 }, "targets": [{ "expr": "sum(rate(sentinel_ingest_records_total[1m]))" }] },
+    { "type": "timeseries", "title": "Investigation duration p50 / p95", "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 }, "targets": [
+      { "expr": "histogram_quantile(0.5, sum(rate(sentinel_investigation_duration_seconds_bucket[10m])) by (le))", "legendFormat": "p50" },
+      { "expr": "histogram_quantile(0.95, sum(rate(sentinel_investigation_duration_seconds_bucket[10m])) by (le))", "legendFormat": "p95" }
+    ] },
+    { "type": "timeseries", "title": "Investigator step duration p95", "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 }, "targets": [
+      { "expr": "histogram_quantile(0.95, sum(rate(sentinel_investigation_step_duration_seconds_bucket[10m])) by (le, step))", "legendFormat": "{{step}}" }
+    ] },
+    { "type": "timeseries", "title": "LLM latency p95 by op", "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 }, "targets": [
+      { "expr": "histogram_quantile(0.95, sum(rate(sentinel_llm_duration_seconds_bucket[10m])) by (le, op))", "legendFormat": "{{op}}" }
+    ] },
+    { "type": "timeseries", "title": "LLM calls by outcome", "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 }, "targets": [
+      { "expr": "sum(rate(sentinel_llm_calls_total[5m])) by (outcome)", "legendFormat": "{{outcome}}" }
+    ] },
+    { "type": "timeseries", "title": "HTTP request rate by route", "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 }, "targets": [
+      { "expr": "sum(rate(sentinel_http_requests_total[1m])) by (route)", "legendFormat": "{{route}}" }
+    ] },
+    { "type": "timeseries", "title": "DB operation latency p95", "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 }, "targets": [
+      { "expr": "histogram_quantile(0.95, sum(rate(sentinel_db_query_duration_seconds_bucket[5m])) by (le, op))", "legendFormat": "{{op}}" }
+    ] },
+    { "type": "timeseries", "title": "Top-hypothesis confidence distribution", "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 }, "targets": [
+      { "expr": "sum(increase(sentinel_hypothesis_confidence_bucket[1h])) by (le)", "legendFormat": "≤ {{le}}" }
+    ] },
+    { "type": "timeseries", "title": "Demo shop error rate by service", "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 }, "targets": [
+      { "expr": "http_error_rate", "legendFormat": "{{service}}" }
+    ] }
+  ]
+}

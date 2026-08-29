@@ -1,0 +1,59 @@
+# Mirrors sentinel/detection/rules.py — both paths open the same incidents.
+groups:
+  - name: demo-shop
+    rules:
+      - alert: HighErrorRate
+        expr: http_error_rate > 0.10
+        for: 30s
+        labels: { severity: critical, project: demo-shop }
+        annotations:
+          description: "HTTP 5xx error ratio above 10% on {{ $labels.service }}"
+          value: "{{ $value }}"
+      - alert: ElevatedErrorRate
+        expr: http_error_rate > 0.03
+        for: 60s
+        labels: { severity: high, project: demo-shop }
+        annotations:
+          description: "HTTP 5xx error ratio above 3% on {{ $labels.service }}"
+          value: "{{ $value }}"
+      - alert: HighLatencyP95
+        expr: http_latency_p95_ms > 1500
+        for: 45s
+        labels: { severity: high, project: demo-shop }
+        annotations:
+          description: "p95 latency above 1500ms on {{ $labels.service }}"
+          value: "{{ $value }}"
+      - alert: DbPoolNearExhaustion
+        expr: db_connections_waiting > 5
+        for: 30s
+        labels: { severity: high, project: demo-shop }
+        annotations:
+          description: "Waiting DB connection requests above 5 on {{ $labels.service }}"
+          value: "{{ $value }}"
+      - alert: QueueBacklog
+        expr: queue_depth > 500
+        for: 60s
+        labels: { severity: medium, project: demo-shop }
+        annotations:
+          description: "Queue depth above 500 ({{ $labels.service }})"
+          value: "{{ $value }}"
+
+  - name: sentinel-self
+    rules:
+      - alert: SentinelInvestigationSlow
+        expr: histogram_quantile(0.95, sum(rate(sentinel_investigation_duration_seconds_bucket[10m])) by (le)) > 60
+        for: 5m
+        labels: { severity: medium, project: sentinel }
+        annotations:
+          description: "p95 investigation duration above 60s"
+      - alert: SentinelDeadLetters
+        expr: increase(sentinel_dead_letters_total[10m]) > 0
+        labels: { severity: high, project: sentinel }
+        annotations:
+          description: "Jobs are being dead-lettered"
+      - alert: SentinelLLMCircuitOpen
+        expr: sentinel_circuit_open{circuit="ollama"} == 1
+        for: 2m
+        labels: { severity: medium, project: sentinel }
+        annotations:
+          description: "LLM circuit breaker open — investigations are using the deterministic narrator"
