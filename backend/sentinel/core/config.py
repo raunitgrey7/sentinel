@@ -7,10 +7,12 @@ SQLite on disk, an in-process job queue, and a deterministic ``none`` LLM provid
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -90,6 +92,18 @@ class Settings(BaseSettings):
     metrics_enabled: bool = True
     telemetry_retention_hours: int = 48
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalise_db_url(cls, v: object) -> object:
+        """Accept plain ``postgresql://`` DSNs (Railway, Heroku-style) and use the async driver."""
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                v = "postgresql+asyncpg://" + v[len("postgres://"):]
+            elif v.startswith("postgresql://"):
+                v = "postgresql+asyncpg://" + v[len("postgresql://"):]
+            v = v.replace("?sslmode=require", "?ssl=require").replace("&sslmode=require", "&ssl=require")
+        return v
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
@@ -111,6 +125,10 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    # Platform conventions: DATABASE_URL / REDIS_URL / PORT (Railway, Heroku, Render).
+    for src, dst in (("DATABASE_URL", "SENTINEL_DATABASE_URL"), ("REDIS_URL", "SENTINEL_REDIS_URL"), ("PORT", "SENTINEL_API_PORT")):
+        if os.environ.get(src) and not os.environ.get(dst):
+            os.environ[dst] = os.environ[src]
     s = Settings()
     if s.is_sqlite:
         DATA_DIR.mkdir(parents=True, exist_ok=True)

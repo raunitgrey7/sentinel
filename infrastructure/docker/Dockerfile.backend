@@ -8,9 +8,11 @@ COPY pyproject.toml uv.lock* README.md ./
 COPY backend ./backend
 COPY simulator ./simulator
 RUN uv pip install --system --no-cache .
-RUN useradd -r -u 10001 sentinel && mkdir -p /app/data && chown -R sentinel /app
+COPY infrastructure/docker/entrypoint.sh /usr/local/bin/sentinel-entrypoint
+RUN chmod +x /usr/local/bin/sentinel-entrypoint && useradd -r -u 10001 sentinel && mkdir -p /app/data && chown -R sentinel /app
 USER sentinel
 ENV SENTINEL_API_HOST=0.0.0.0 SENTINEL_API_PORT=8000
 EXPOSE 8000 9000-9007
-HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD curl -fsS http://localhost:${SENTINEL_API_PORT}/health || exit 1
-CMD ["sentinel", "api"]
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD curl -fsS http://localhost:${PORT:-${SENTINEL_API_PORT}}/health || exit 1
+ENTRYPOINT ["sentinel-entrypoint"]
+CMD []
