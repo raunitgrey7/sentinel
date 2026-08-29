@@ -334,9 +334,9 @@ def calibration_plot(summary, out: Path) -> None:
     fig.patch.set_facecolor("#121A23")
     ax.set_facecolor("#121A23")
     ax.plot([0, 1], [0, 1], color="#5D6B79", lw=1, ls=":", label="perfectly calibrated")
-    ax.scatter(conf, acc, s=70, color="#A78BFA", edgecolor="#E6EDF3", zorder=3)
-    for n, cx, ay in zip(names, conf, acc, strict=True):
-        ax.annotate(n.replace("_", " "), (cx, ay), textcoords="offset points", xytext=(4, -9), fontsize=6, color="#8B98A6")
+    ax.scatter(conf, acc, s=80, color="#A78BFA", edgecolor="#E6EDF3", zorder=3, label="one point per fault type (14)")
+    lo, hi = min(conf), max(conf)
+    ax.annotate(f"reported {lo:.2f}–{hi:.2f} · observed {min(acc):.2f}–{max(acc):.2f}", ((lo + hi) / 2, 0.93), ha="center", fontsize=8, color="#E6EDF3")
     ax.set_xlim(0.4, 1.0)
     ax.set_ylim(0.4, 1.05)
     ax.set_xlabel("mean reported confidence", color="#8B98A6")
@@ -383,7 +383,7 @@ def build(web_url: str, api_url: str, repo_url: str) -> Path:
     D.stat(s, "signal sources", "5+", "logs, metrics, traces, deploys, git, config", Inches(5.0), Inches(1.6), color=INFO)
     D.stat(s, "AI ops today", "0", "root causes that cite their evidence", Inches(7.2), Inches(1.6), color=VIOLET)
     D.bullets(s, [
-        "The 2:13 PM problem:: payment errors climb, latency climbs, DB connections climb. Dashboards light up. Every tool says *something is wrong*; none says *what changed and why*.",
+        "The 2:13 PM problem:: payment errors climb, latency climbs, DB connections climb. Dashboards light up. Every tool says “something is wrong”; none says what changed, and why.",
         "Diagnosis is manual correlation:: an engineer opens six tabs, guesses, and checks the deploy log last.",
         "LLM ops tools made it worse, not better:: a chat box over logs produces a confident paragraph with no evidence, no reproducibility, and a prompt-injection surface the size of your log volume.",
         "What teams actually need:: a system that reasons over evidence, ranks explanations, says how sure it is, shows what contradicts it, and never acts without a human.",
