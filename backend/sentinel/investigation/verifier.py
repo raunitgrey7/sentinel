@@ -91,6 +91,33 @@ def verify_hypothesis(hyp: dict[str, Any], ctx: InvestigationContext) -> dict[st
     }
 
 
+REORDER_TOLERANCE = 0.10
+
+
+def _stabilize(verified: list[dict[str, Any]]) -> None:
+    """The narrator may reorder hypotheses only within a small deterministic score gap.
+
+    Small local models cite poorly; poor citations lower calibrated confidence, and that
+    must not be allowed to promote a clearly weaker hypothesis over the deterministic
+    leader. The rejection is recorded on the hypothesis so the UI can show it.
+    """
+    if len(verified) < 2:
+        return
+    verified.sort(key=lambda h: h["confidence"], reverse=True)
+    det_top = max(verified, key=lambda h: float(h["score"]))
+    if verified[0] is det_top:
+        return
+    gap = float(det_top["score"]) - float(verified[0]["score"])
+    if gap > REORDER_TOLERANCE:
+        demoted = verified[0]
+        verified.remove(det_top)
+        verified.insert(0, det_top)
+        det_top["verification"]["issues"].append(
+            f"narrator preferred '{demoted['title']}' but the deterministic score gap ({gap:.2f}) exceeds the reorder tolerance ({REORDER_TOLERANCE}); deterministic ranking kept"
+        )
+        det_top["confidence"] = round(max(det_top["confidence"], demoted["confidence"]), 4)
+
+
 async def run(ctx: InvestigationContext) -> dict[str, Any]:
     hyps = ctx.synthesis.get("hypotheses") or [{**c, "llm_supporting": c["supporting"], "llm_contradicting": c["contradicting"], "citation_validity": 1.0, "reasoning": ""} for c in ctx.candidates]
     verified: list[dict[str, Any]] = []
@@ -98,7 +125,7 @@ async def run(ctx: InvestigationContext) -> dict[str, Any]:
         v = verify_hypothesis(h, ctx)
         verified.append({**h, "verification": v, "confidence": v["confidence"], "supporting": v["supporting"], "contradicting": v["contradicting"]})
 
-    verified.sort(key=lambda h: h["confidence"], reverse=True)
+    _stabilize(verified)
     top = verified[0] if verified else None
 
     # Optional model cross-examination of the leading hypothesis (can only lower confidence).
@@ -123,7 +150,7 @@ async def run(ctx: InvestigationContext) -> dict[str, Any]:
             top["verification"]["model_missing_evidence"] = out.missing_evidence
         except Exception as exc:  # noqa: BLE001
             llm_note = {"error": str(exc)[:200]}
-        verified.sort(key=lambda h: h["confidence"], reverse=True)
+        _stabilize(verified)
         top = verified[0]
 
     for i, h in enumerate(verified, start=1):

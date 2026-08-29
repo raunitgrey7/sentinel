@@ -47,8 +47,9 @@ writes the postmortem with citations.
 * PII redaction at ingestion; per-service ingestion credentials; OIDC.
 * pgvector for retrieval at scale; learned (rather than hand-weighted) scoring once
   real incident labels exist.
-* A model-lift study: rerun the benchmark with `qwen2.5:7b` / larger local models and
-  report citation validity and reordering gains honestly.
+* Extend the model-lift study (`docs/evaluation/model-lift.md`) to 7B+ models on a GPU;
+  at 3B the narrator needed a rank-stability guard and its cross-examination is
+  over-skeptical.
 
 ---
 

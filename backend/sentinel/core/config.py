@@ -11,7 +11,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -30,7 +29,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_workers: int = 1
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    cors_origins: str = "http://localhost:3000"  # comma-separated
     public_url: str = "http://localhost:8000"
 
     # --- persistence ----------------------------------------------------------------------
@@ -72,8 +71,8 @@ class Settings(BaseSettings):
 
     # --- llm ------------------------------------------------------------------------------
     llm_provider: Literal["none", "ollama"] = "none"
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5:7b"
+    ollama_base_url: str = "http://127.0.0.1:11434"  # 127.0.0.1: Ollama binds IPv4 only
+    ollama_model: str = "qwen2.5:3b"  # fits CPU-only 16 GB laptops; qwen2.5:7b with a GPU / more RAM
     ollama_embed_model: str = "nomic-embed-text"
     llm_timeout_s: float = 90.0
     llm_max_retries: int = 2
@@ -91,12 +90,9 @@ class Settings(BaseSettings):
     metrics_enabled: bool = True
     telemetry_retention_hours: int = 48
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def _split_origins(cls, v: object) -> object:
-        if isinstance(v, str):
-            return [o.strip() for o in v.split(",") if o.strip()]
-        return v
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
     def is_sqlite(self) -> bool:

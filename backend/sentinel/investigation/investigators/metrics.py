@@ -146,15 +146,13 @@ async def run(ctx: InvestigationContext) -> dict[str, Any]:
             up_seen.add(name)
             significant += 1
             mult = (d.incident_mean / d.baseline_mean) if d.baseline_mean > 1e-9 else float("inf")
-            if mult == float("inf") or abs(d.baseline_mean) < 1e-3:
-                change = "from a ~zero baseline"
-            elif mult < 100:
-                change = f"{mult:.1f}×"
+            if mult == float("inf") or mult >= 100 or abs(d.baseline_mean) < 1e-3:
+                change = "from a near-zero baseline"
             else:
-                change = f"{d.pct_change * 100:+.0f}%"
+                change = f"{mult:.1f}×"
             summary = (
                 f"{svc} {name.replace('_', ' ')} {'increased' if d.direction == 'up' else 'decreased'} "
-                f"from {_fmt(name, d.baseline_mean)} → {_fmt(name, d.incident_mean)} (peak {_fmt(name, d.incident_max)}, {change}, z={d.z_score:.1f})"
+                f"from {_fmt(name, d.baseline_mean)} → {_fmt(name, d.incident_mean)} (peak {_fmt(name, d.incident_max)}, {change}, z={'>99' if d.z_score >= 99 else f'{d.z_score:.1f}'})"
             )
             ctx.evidence.add(
                 EvidenceKind.METRIC,

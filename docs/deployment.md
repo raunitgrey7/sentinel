@@ -15,10 +15,13 @@ Login: `admin@sentinel.local` / `admin12345` (change via `SENTINEL_BOOTSTRAP_ADM
 cp .env.example .env                                  # change SENTINEL_SECRET_KEY & passwords for anything shared
 docker compose up --build -d                          # postgres, redis, migrate, api, worker, simulator, web
 docker compose --profile observability up -d          # + prometheus :9090, alertmanager :9093, grafana :3001, otel :4317/4318
-docker compose --profile llm up -d                    # + ollama :11434 (pulls qwen2.5:7b + nomic-embed-text)
+docker compose --profile llm up -d                    # + ollama :11434 (pulls qwen2.5:3b + nomic-embed-text)
 ```
 Set `SENTINEL_LLM_PROVIDER=ollama` in `.env` to use the model; leave `none` for the
-deterministic narrator.
+deterministic narrator. To use an Ollama already running on the host instead of the
+`llm` profile, set `SENTINEL_OLLAMA_BASE_URL=http://host.docker.internal:11434`.
+`qwen2.5:3b` is the default because it runs on a CPU-only 16 GB laptop alongside the
+stack; use `qwen2.5:7b` (or larger) with a GPU or more RAM.
 
 Services: web `:3000`, API `:8000` (`/docs`), simulator control `:9000`.
 

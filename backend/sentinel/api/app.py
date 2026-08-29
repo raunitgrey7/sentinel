@@ -73,7 +73,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestContextMiddleware)
-    app.add_middleware(CORSMiddleware, allow_origins=s.cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"], expose_headers=["x-request-id"])
+    app.add_middleware(CORSMiddleware, allow_origins=s.cors_origin_list, allow_credentials=True, allow_methods=["*"], allow_headers=["*"], expose_headers=["x-request-id"])
 
     @app.exception_handler(SentinelError)
     async def _sentinel_error(request: Request, exc: SentinelError) -> JSONResponse:

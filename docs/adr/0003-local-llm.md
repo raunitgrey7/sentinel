@@ -16,7 +16,8 @@ authentication and no account. `NullProvider` is the deterministic fallback and 
 provider. `FallbackProvider` degrades from Ollama to the narrator on timeout, circuit-open
 or invalid output, and records which provider produced each result so the UI can label it.
 
-Model choice is configuration (`SENTINEL_OLLAMA_MODEL`, default `qwen2.5:7b`; embeddings
+Model choice is configuration (`SENTINEL_OLLAMA_MODEL`, default `qwen2.5:3b` — it fits a
+CPU-only 16 GB laptop; `qwen2.5:7b` or larger with a GPU; embeddings
 `nomic-embed-text`). Cloud providers could be added behind the same protocol; none are
 required.
 

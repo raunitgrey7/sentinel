@@ -88,6 +88,7 @@ def deviation(metric: str, baseline: list[Point], incident: list[Point]) -> Devi
     z = (i_mean - b_mean) / std_floor
     if not b and i:
         z = 3.5 if i_mean > 0 else 0.0
+    z = max(-99.0, min(99.0, z))  # beyond this the number carries no information
     direction = "up" if pct > 0.1 else "down" if pct < -0.1 else "flat"
     onset = None
     thr = b_mean + 2.5 * std_floor if direction == "up" else b_mean - 2.5 * std_floor

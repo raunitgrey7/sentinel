@@ -137,6 +137,11 @@ and every later milestone adds depth rather than breadth.
 | M10 hardening & delivery | done | resilience primitives, self-metrics, Grafana, compose stack, CI quality gate, docs, 67 tests green |
 
 Not done (deliberately): Kubernetes manifests (ADR-0001), pgvector (ADR-0004), OIDC and
-PII redaction (threat model → known gaps). The Docker images could not be built on the
-authoring machine (Docker Desktop was not running); the Dockerfiles and compose file are
-reviewed but unexecuted.
+PII redaction (threat model → known gaps).
+
+Verified on the full Docker Compose stack (PostgreSQL, Redis, separate ARQ worker,
+simulator, web, Prometheus, Alertmanager, Grafana, OTel collector): a `bad_deployment`
+fault opened `INC-2026-0001`, alerts arrived through Alertmanager (with inhibition), the
+investigation cited the offending commit, and the rollback playbook was approved,
+executed against the simulator and verified. Local model path verified with
+`qwen2.5:3b` via Ollama (`docs/evaluation/ollama-smoke.md`).

@@ -49,3 +49,24 @@ def test_confidence_never_exceeds_cap():
     v = verify_hypothesis(hyp, _ctx(bag))
     assert v["confidence"] <= 0.95
     assert v["evidence_kinds"] == ["log", "metric", "trace"]
+
+
+def test_narrator_cannot_promote_a_clearly_weaker_hypothesis():
+    from sentinel.investigation.verifier import _stabilize
+
+    strong = {"title": "Cache unavailable", "score": 0.85, "confidence": 0.41, "verification": {"issues": []}}
+    weak = {"title": "Database latency", "score": 0.55, "confidence": 0.5, "verification": {"issues": []}}
+    ranked = [weak, strong]
+    _stabilize(ranked)
+    assert ranked[0] is strong
+    assert any("reorder tolerance" in i for i in strong["verification"]["issues"])
+
+
+def test_narrator_may_reorder_within_tolerance():
+    from sentinel.investigation.verifier import _stabilize
+
+    a = {"title": "A", "score": 0.80, "confidence": 0.6, "verification": {"issues": []}}
+    b = {"title": "B", "score": 0.75, "confidence": 0.7, "verification": {"issues": []}}
+    ranked = [a, b]
+    _stabilize(ranked)
+    assert ranked[0] is b and not a["verification"]["issues"]

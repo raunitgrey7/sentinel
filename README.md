@@ -66,6 +66,11 @@ reaches the pipeline. Latest run (`docs/evaluation/latest.md`, deterministic pro
 | Median / p95 investigation time | 0.39 s / 0.63 s |
 | Calibration (ECE) | 0.32 — reported confidence is deliberately conservative (0.55–0.87) |
 
+Model lift (`docs/evaluation/model-lift.md`): a local `qwen2.5:3b` narrator flipped one
+correct answer until a rank-stability guard was added; with the guard it is 3/3 on the
+studied cases with 100% citation validity, but ~250 s per investigation on a CPU-only
+laptop and over-skeptical cross-examination. The deterministic pipeline stays the default.
+
 Honesty notes: the telemetry is synthetic and the catalog and scenarios were written by the
 same author (see `docs/evaluation/methodology.md` → *threats to validity*). The live
 simulator path (real HTTP services, real timing) is exercised end-to-end by the demo and
@@ -123,6 +128,15 @@ cp .env.example .env
 docker compose up --build -d
 docker compose --profile observability --profile llm up -d      # optional
 ```
+
+Optional local model (no API key, nothing leaves the machine):
+
+```bash
+ollama pull qwen2.5:3b && ollama pull nomic-embed-text     # 3B fits a CPU-only 16 GB laptop; use 7B+ with a GPU
+SENTINEL_LLM_PROVIDER=ollama uv run sentinel dev
+```
+If the model is slow or down, the circuit breaker trips and the deterministic narrator
+takes over — the incident still completes and the UI labels which provider narrated it.
 
 Run the benchmark: `make eval` → `docs/evaluation/latest.md`. Tests: `make test`.
 

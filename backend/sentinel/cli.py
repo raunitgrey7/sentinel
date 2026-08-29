@@ -60,13 +60,23 @@ def dev(port: int = 8000, sim_port: int = 9000, no_sim: bool = False) -> None:
 @app.command()
 def migrate(revision: str = "head") -> None:
     """Apply Alembic migrations."""
+    from pathlib import Path
+
     from alembic.config import Config
 
     from alembic import command
     from sentinel.core.config import REPO_ROOT
 
-    cfg = Config(str(REPO_ROOT / "backend" / "alembic.ini"))
-    cfg.set_main_option("script_location", str(REPO_ROOT / "backend" / "alembic"))
+    # source checkout, container WORKDIR (/app), or an explicit override
+    override = os.environ.get("SENTINEL_ALEMBIC_DIR")
+    candidates = [Path(override)] if override else []
+    candidates += [REPO_ROOT / "backend", Path.cwd() / "backend", Path("/app/backend")]
+    base = next((c for c in candidates if (c / "alembic.ini").exists()), None)
+    if base is None:
+        typer.echo("alembic.ini not found; set SENTINEL_ALEMBIC_DIR", err=True)
+        raise typer.Exit(code=2)
+    cfg = Config(str(base / "alembic.ini"))
+    cfg.set_main_option("script_location", str(base / "alembic"))
     command.upgrade(cfg, revision)
 
 

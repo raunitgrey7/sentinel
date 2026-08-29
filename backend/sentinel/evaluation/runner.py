@@ -321,5 +321,5 @@ def write_report(result: dict[str, Any], path: str) -> Path:
         lines.append(f"| {c['scenario']} | {c['expected']} | {c['predicted']} {mark} | {c['confidence']:.2f} | {c['evidence_precision']:.2f} | {c['latency_ms']:.0f} |")
     lines += ["", "Methodology: `docs/evaluation/methodology.md`."]
     out.write_text("\n".join(lines), encoding="utf-8")
-    (out.parent / "latest.json").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
+    out.with_suffix(".json").write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
     return out

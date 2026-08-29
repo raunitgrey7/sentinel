@@ -1,0 +1,184 @@
+{
+  "summary": {
+    "cases": 3,
+    "fault_cases": 3,
+    "control_cases": 0,
+    "detection_rate": 1.0,
+    "root_cause_accuracy": 1.0,
+    "root_cause_top3_accuracy": 1.0,
+    "evidence_precision": 1.0,
+    "citation_validity": 1.0,
+    "false_positive_rate": 0.0,
+    "confident_wrong_rate": 0.0,
+    "ece": 0.4706,
+    "median_investigation_ms": 260805.7,
+    "p95_investigation_ms": 260805.7,
+    "mean_detection_gap_s": 160.0,
+    "mean_llm_ms": 226113.7,
+    "per_fault": {
+      "db_pool_exhaustion": {
+        "cases": 1,
+        "correct": 1,
+        "top3": 1,
+        "detected": 1,
+        "accuracy": 1.0,
+        "top3_accuracy": 1.0,
+        "mean_confidence": 0.48
+      },
+      "redis_failure": {
+        "cases": 1,
+        "correct": 1,
+        "top3": 1,
+        "detected": 1,
+        "accuracy": 1.0,
+        "top3_accuracy": 1.0,
+        "mean_confidence": 0.432
+      },
+      "http_500_spike": {
+        "cases": 1,
+        "correct": 1,
+        "top3": 1,
+        "detected": 1,
+        "accuracy": 1.0,
+        "top3_accuracy": 1.0,
+        "mean_confidence": 0.676
+      }
+    },
+    "confusion": {
+      "database_connection_pool": {
+        "database_connection_pool": 1
+      },
+      "redis_unavailable": {
+        "redis_unavailable": 1
+      },
+      "deployment_regression": {
+        "deployment_regression": 1
+      }
+    },
+    "confidence_threshold": 0.55,
+    "wall_time_s": 831.7,
+    "llm_provider": "ollama",
+    "model": "qwen2.5:3b",
+    "run_id": "ac004e1e4ecb4f8e84f992daeae0ad50",
+    "completed_at": "2026-08-29T20:32:19.954761+00:00"
+  },
+  "cases": [
+    {
+      "scenario": "db_pool_exhaustion/payment-service/v1",
+      "fault_type": "db_pool_exhaustion",
+      "target_service": "payment-service",
+      "expected": "database_connection_pool",
+      "detected": true,
+      "predicted": "database_connection_pool",
+      "top3": [
+        "database_connection_pool"
+      ],
+      "correct": true,
+      "top3_correct": true,
+      "confidence": 0.48,
+      "evidence_precision": 1.0,
+      "citation_validity": 1.0,
+      "latency_ms": 337313.7,
+      "llm_ms": 336709.2,
+      "incident_id": "cd8d1426bb6d4e96ac8d01f0907ef251",
+      "detail": {
+        "detect_ms": 104.4,
+        "incidents_opened": 1,
+        "primary_service": "payment-service",
+        "detection_gap_s": 160.0,
+        "top_title": "Database connection-pool exhaustion",
+        "culprit": "payment-service",
+        "breakdown": {
+          "signal_support": 1.2513,
+          "temporal_correlation": 0.0,
+          "dependency_relevance": 0.967,
+          "historical_similarity": 0.0,
+          "contradictory_evidence": -0.0,
+          "raw": 1.4931,
+          "evidence_kinds": 3.0
+        },
+        "issues": [
+          "model verifier disagreed: E13; E14; E15"
+        ]
+      }
+    },
+    {
+      "scenario": "redis_failure/auth-service/v1",
+      "fault_type": "redis_failure",
+      "target_service": "auth-service",
+      "expected": "redis_unavailable",
+      "detected": true,
+      "predicted": "redis_unavailable",
+      "top3": [
+        "redis_unavailable",
+        "database_latency"
+      ],
+      "correct": true,
+      "top3_correct": true,
+      "confidence": 0.4324,
+      "evidence_precision": 1.0,
+      "citation_validity": 1.0,
+      "latency_ms": 260805.7,
+      "llm_ms": 191364.1,
+      "incident_id": "629459a664904d73a27c312a58a8eed9",
+      "detail": {
+        "detect_ms": 97.0,
+        "incidents_opened": 1,
+        "primary_service": "auth-service",
+        "detection_gap_s": 160.0,
+        "top_title": "Cache (Redis) unavailable",
+        "culprit": "auth-service",
+        "breakdown": {
+          "signal_support": 0.8563,
+          "temporal_correlation": 0.0,
+          "dependency_relevance": 0.975,
+          "historical_similarity": 0.0,
+          "contradictory_evidence": -0.0,
+          "raw": 1.1001,
+          "evidence_kinds": 3.0
+        },
+        "issues": [
+          "model verifier disagreed: E1; E2; E4",
+          "narrator preferred 'Database query latency degradation' but the deterministic score gap (0.25) exceeds the reorder tolerance (0.1); deterministic ranking kept"
+        ]
+      }
+    },
+    {
+      "scenario": "http_500_spike/order-service/v1",
+      "fault_type": "http_500_spike",
+      "target_service": "order-service",
+      "expected": "deployment_regression",
+      "detected": true,
+      "predicted": "deployment_regression",
+      "top3": [
+        "deployment_regression"
+      ],
+      "correct": true,
+      "top3_correct": true,
+      "confidence": 0.6757,
+      "evidence_precision": 1.0,
+      "citation_validity": 1.0,
+      "latency_ms": 213522.9,
+      "llm_ms": 150267.8,
+      "incident_id": "f74c2fd8041f42d9ae7f22299bc801a9",
+      "detail": {
+        "detect_ms": 82.1,
+        "incidents_opened": 1,
+        "primary_service": "order-service",
+        "detection_gap_s": 160.0,
+        "top_title": "Regression introduced by a deployment",
+        "culprit": "order-service",
+        "breakdown": {
+          "signal_support": 0.6067,
+          "temporal_correlation": 0.6667,
+          "dependency_relevance": 0.975,
+          "historical_similarity": 0.0,
+          "contradictory_evidence": -0.0,
+          "raw": 1.0837,
+          "evidence_kinds": 4.0
+        },
+        "issues": []
+      }
+    }
+  ]
+}

@@ -51,7 +51,8 @@ export function usePoll<T>(fetcher: () => Promise<T>, intervalMs = 5000, deps: u
 
   useEffect(() => {
     if (!enabled) return;
-    const kick = setTimeout(tick, 0);
+    // the first fetch must not depend on tab visibility (background tabs still hydrate)
+    const kick = setTimeout(() => void refresh(), 0);
     const timer = setInterval(tick, intervalMs);
     document.addEventListener("visibilitychange", tick);
     return () => {
@@ -60,7 +61,7 @@ export function usePoll<T>(fetcher: () => Promise<T>, intervalMs = 5000, deps: u
       document.removeEventListener("visibilitychange", tick);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intervalMs, enabled, tick, ...deps]);
+  }, [intervalMs, enabled, tick, refresh, ...deps]);
 
   return { data, error, loading: enabled && !settled, refresh, lastUpdated };
 }

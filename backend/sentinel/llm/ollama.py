@@ -9,6 +9,7 @@ Hardening around the model boundary:
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Any, TypeVar
 
@@ -22,6 +23,14 @@ from sentinel.observability import metrics as m
 
 log = get_logger(__name__)
 T = TypeVar("T", bound=BaseModel)
+
+# The machine-readable context block is for the deterministic narrator only; it would
+# double the prompt for a real model without adding information.
+_CTX_BLOCK = re.compile(r"\n*<<SENTINEL_CONTEXT>>.*?<<END_SENTINEL_CONTEXT>>", re.S)
+
+
+def strip_context(prompt: str) -> str:
+    return _CTX_BLOCK.sub("", prompt)
 
 
 class OllamaProvider:
@@ -38,7 +47,9 @@ class OllamaProvider:
         temperature: float = 0.1,
         circuit_failures: int = 3,
         circuit_reset_s: float = 60.0,
+        num_ctx: int = 8192,
     ) -> None:
+        self.num_ctx = num_ctx
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.embed_model = embed_model
@@ -64,9 +75,9 @@ class OllamaProvider:
     async def _chat(self, system: str, user: str, *, temperature: float | None, max_tokens: int, json_mode: bool, op: str) -> LLMResult:
         payload: dict[str, Any] = {
             "model": self.model,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": strip_context(user)}],
             "stream": False,
-            "options": {"temperature": self.temperature if temperature is None else temperature, "num_predict": max_tokens},
+            "options": {"temperature": self.temperature if temperature is None else temperature, "num_predict": max_tokens, "num_ctx": self.num_ctx},
         }
         if json_mode:
             payload["format"] = "json"
