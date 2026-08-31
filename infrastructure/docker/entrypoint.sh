@@ -25,6 +25,13 @@ case "$ROLE" in
   simulator)
     exec sentinel-sim run --port "${PORT:-9000}" --host "${SIM_HOST:-127.0.0.1}"
     ;;
+  space)
+    # Single-container demo (Hugging Face Spaces): API + demo shop in one process tree.
+    export SIM_SENTINEL_URL="${SIM_SENTINEL_URL:-http://127.0.0.1:${PORT:-7860}}"
+    export SENTINEL_SIMULATOR_URL="${SENTINEL_SIMULATOR_URL:-http://127.0.0.1:9000}"
+    (sleep 12 && exec sentinel-sim run --port 9000 --host 127.0.0.1) &
+    exec sentinel api --host 0.0.0.0 --port "${PORT:-7860}"
+    ;;
   *)
     echo "unknown SENTINEL_ROLE '$ROLE' (expected api|worker|simulator)" >&2
     exit 2

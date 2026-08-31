@@ -1,94 +1,242 @@
-# Sentinel — pitch & resume notes
+# Sentinel — the complete pitch
 
-## The one-paragraph pitch
-
-Every engineering team already has monitoring that says *"payment-service is unhealthy."*
-Nobody has a system that says *why* — and can prove it. Sentinel is a self-hosted incident
-investigation platform that turns logs, metrics, traces, deployments and Git history into
-an evidence graph, ranks root-cause hypotheses with an explicit, inspectable score, lets a
-local model narrate them, and then **verifies the model's claims against the evidence
-before reporting a confidence**. Recommendations require human approval; every action is
-audited. It runs on a laptop with zero cloud dependencies and no API keys, and it ships with
-a benchmark of 119 synthetic production failures on which it names the right root cause
-100% of the time (first iteration 96.5%) with 0% false positives and a median investigation
-time of 0.39 seconds.
-
-## What makes it defensible
-
-1. **Deterministic core, model at the edge.** Detection, correlation, clustering, scoring
-   and verification are code with unit tests. The model can only narrate and cite
-   system-minted evidence handles; a verifier discards anything else and re-derives
-   confidence. Accuracy is a property of the pipeline and reproducible in CI.
-2. **Evidence, contradictions, caveats.** The UI shows what supports a hypothesis, what
-   contradicts it, and why the confidence is *not* higher. Engineers can challenge it
-   ("Why not CPU saturation?") and get a cited answer.
-3. **Local-first by design.** Incident data is the most sensitive data a company has.
-   Nothing leaves the host; the model is Ollama on localhost; the fallback is a
-   deterministic narrator. The same code runs on SQLite + in-process queue and on
-   PostgreSQL + Redis + workers.
-4. **Human-in-the-loop remediation** with four-eyes approval, agent tool permission
-   boundaries and a full audit trail — the opposite of "AI rolled back production."
-5. **Measured.** A scenario library with ground truth, healthy controls, confounders and
-   noise; metrics for accuracy, evidence precision, citation validity, false positives,
-   confident-wrong rate, calibration and latency; a CI quality gate.
-
-## Demo in one line
-
-Inject a database connection-pool exhaustion into a seven-service shop; watch the error
-cascade; Sentinel opens one incident (not three), re-points the primary suspect to the
-deepest failing service, ranks *pool exhaustion* first with metric, log and trace evidence,
-lists the CPU-stayed-flat contradiction, proposes a rollback that an SRE must approve, and
-writes the postmortem with citations.
-
-## Where it goes next
-
-* Adapters for real targets (Kubernetes rollouts, Argo, feature flags) behind the existing
-  `TargetAdapter` interface.
-* PII redaction at ingestion; per-service ingestion credentials; OIDC.
-* pgvector for retrieval at scale; learned (rather than hand-weighted) scoring once
-  real incident labels exist.
-* Extend the model-lift study (`docs/evaluation/model-lift.md`) to 7B+ models on a GPU;
-  at 3B the narrator needed a rank-stability guard and its cross-examination is
-  over-skeptical.
+*How to pitch Sentinel to investors and engineering leaders: what to say, in what order,
+with every number you can defend and where it comes from. Slides: `docs/pitch/Sentinel-Pitch.pptx`.
+Live demo: dashboard on Vercel, backend on Hugging Face Spaces (links in the README).*
 
 ---
 
-## Resume entry
+## 0. The one-liner
 
-**Sentinel — AI Incident Investigation & Response Platform** (open source)
-Python · FastAPI · PostgreSQL · Redis · SQLAlchemy · Alembic · OpenTelemetry · Prometheus ·
-Grafana · Docker · Next.js/TypeScript · Ollama (local LLMs)
+> **Monitoring tells you a service is unhealthy. Sentinel tells you why — and proves it.**
 
-* Built a self-hosted, local-first platform that correlates logs, metrics, distributed
-  traces, deployments and Git history into an evidence graph and identifies
-  evidence-backed root causes across a multi-service system; every AI claim cites
-  system-minted evidence and is re-verified before a calibrated confidence is reported.
-* Designed a durable multi-stage investigation runtime (checkpointed, resumable, retried
-  with backoff, per-step timeouts) over an in-process or Redis/ARQ job queue with
-  dead-lettering and idempotent enqueueing; blast-radius incident merging over the service
-  dependency graph.
-* Implemented a provider-agnostic LLM layer (Ollama, deterministic fallback, circuit
-  breaker, JSON-schema-validated structured outputs, prompt-injection hardening) and
-  signature-based retrieval over historical incidents — with zero paid API usage.
-* Built a seven-service demo environment over real HTTP with a fourteen-fault chaos
-  engine, a release manager with synthetic Git history, and an automated evaluation suite
-  of 119 scenarios measuring root-cause accuracy, evidence precision, false-positive rate,
-  calibration and latency (100% top-1, 0% false positives, 0.39 s median; first iteration
-  96.5%).
-* Shipped production controls: JWT + API-key auth with scopes, RBAC, four-eyes remediation
-  approval with audit logs, rate limiting, self-observability metrics and Grafana
-  dashboard, Alembic migrations, Docker Compose stack, GitHub Actions CI with a benchmark
-  quality gate, 67 unit/integration/chaos tests.
+If you get one sentence, use that. If you get two:
 
-## Interview talking points
+> Sentinel turns logs, metrics, traces, deployments and Git history into an evidence
+> graph, ranks root-cause hypotheses with an inspectable score, and verifies every AI
+> claim against the evidence before reporting a confidence. Humans approve every action.
 
-* *Why not just an LLM agent?* → reproducibility, measurability, injection surface,
-  confidence you can defend. Show the verifier rejecting an invented citation.
-* *How do you know it works?* → the benchmark, its methodology and its threats to
-  validity; the confusion matrix from the first iteration and what changed (symptom
-  vs cause handling for upstream services; noise gate on log bursts).
-* *What breaks at scale?* → telemetry write volume (partitioning / a columnar store or
-  ClickHouse behind the same store interface), retrieval (pgvector), SQLite single-writer
-  (PostgreSQL in compose), the model as a latency tail (circuit breaker + fallback).
-* *What would you not do again?* → hand-tuned catalog weights; fine for a first system,
-  should become learned once labelled real incidents exist.
+---
+
+## 1. The 3-minute verbal pitch (say this)
+
+**[Problem — 40 seconds]**
+"At 2:13 PM the payment service starts throwing errors. Latency climbs, database
+connections climb, checkouts fail. Every dashboard lights up — the gateway, the order
+service, the frontend, all red. Every tool you own says *something is wrong*. Not one of
+them says *what changed and why*. So five engineers join a call, open thirty tabs, and
+spend the next hour doing manual correlation — and most of that hour is diagnosis, not
+fixing. The industry's answer has been to bolt a chatbot onto the logs. That gives you a
+confident paragraph with no evidence, no reproducibility, and a prompt-injection surface
+the size of your log volume."
+
+**[What we built — 60 seconds]**
+"Sentinel is a self-hosted incident investigation platform. It ingests the telemetry you
+already have — OpenTelemetry-shaped logs, metrics, traces, plus deployments and commits —
+detects incidents deterministically, and then runs seven specialised investigators:
+metrics deviations against baselines, log template clustering, trace critical paths,
+deployment proximity, dependency blast radius, and retrieval over your past incidents.
+Everything lands in an evidence graph with citation handles the system itself minted.
+A catalog of failure modes turns those signals into ranked hypotheses with an explicit,
+inspectable score. Only then does a local language model get involved — it narrates and
+cites. And here's the part nobody else does: a verifier re-checks the model's claims
+against the evidence, throws out invalid citations, surfaces the contradictions it
+ignored, and re-derives the confidence. If confidence is low, the incident routes to a
+human, not a playbook. Nothing executes without a second person approving it, and every
+step is audited."
+
+**[Proof — 40 seconds]**
+"We don't claim accuracy, we measure it. The repo ships a benchmark: 119 synthetic
+production failures across 14 root-cause categories, with healthy controls, noise and
+deliberately confounding deployments. Ground truth never reaches the pipeline. Latest
+run: 100% top-1 root-cause accuracy, 100% detection, zero false positives on healthy
+systems, zero confidently-wrong answers, median investigation time 0.39 seconds — and
+that's with **no model at all**, because the deterministic engine is the product. The
+first iteration scored 96.5%; the diff that fixed it is in the repo. When we did wire in
+a small local model, it flipped a correct answer — our verifier caught the pattern, we
+added a rank-stability guard, and we published that negative result too. That's the
+culture this system is built on."
+
+**[Why it wins — 30 seconds]**
+"Three structural advantages. One: local-first — incident data is the most sensitive data
+a company has, and with Sentinel nothing leaves the building; the model is Ollama on
+localhost or nothing. Two: it sits beside existing monitoring, not instead of it —
+ingestion is OpenTelemetry-aligned and it accepts Alertmanager webhooks directly. Three:
+it's measurable — every claim in this pitch is a number in the repo you can regenerate
+with one command."
+
+**[Ask — 10 seconds]**
+"It's open source, it's deployed, and you can break it yourself in the chaos lab right
+now. I'm looking for design partners with real telemetry — and for [the role / the
+investment] to take it there."
+
+---
+
+## 2. The 30-second elevator version
+
+"Every company has monitoring that says *payment-service is unhealthy*. Nobody has a
+system that says *why* and can prove it. Sentinel investigates incidents the way a good
+SRE does — metrics, logs, traces, deployments, history — builds an evidence graph, ranks
+root causes with a score you can inspect, and verifies every AI claim before reporting
+confidence. It runs entirely on your infrastructure, needs no API keys, and ships with a
+119-case benchmark where it currently identifies the right root cause 100% of the time
+with zero false positives. The AI is the least interesting part — the verification
+architecture is the product."
+
+---
+
+## 3. Every statistic you can say, and its source
+
+Say only these numbers. Each one is regenerable from the repository.
+
+| Number | Say it as | Source |
+|---|---|---|
+| **100% / 100%** | top-1 / top-3 root-cause accuracy, latest benchmark | `docs/evaluation/latest.md` (`make eval`) |
+| **96.5% → 100%** | first iteration → current; "the fixes are two commits you can read" | `docs/evaluation/full-run1.md` |
+| **119 cases** | 113 faults across **14 root-cause categories** + 6 healthy controls | `docs/evaluation/methodology.md` |
+| **100%** | detection rate | latest.md |
+| **100%** | evidence precision — cited evidence is relevant to the *true* cause | latest.md |
+| **100%** | citation validity — every claim backed by real, system-minted evidence | latest.md |
+| **0%** | false positives on healthy controls | latest.md |
+| **0%** | confidently-wrong rate (wrong answer with confidence ≥ 0.55) | latest.md |
+| **0.39 s / 0.63 s** | median / p95 end-to-end investigation time | latest.md |
+| **0.32 ECE** | calibration error — *in the safe direction*: the system under-claims | latest.md + `docs/evaluation/model-lift.md` |
+| **~161 s** | mean onset → alert-condition gap in the benchmark (rule `for` windows dominate) | latest.md |
+| **2/3 → 3/3** | small-model study: free reordering flipped a correct answer; the rank-stability guard fixed it | `docs/evaluation/model-lift.md` |
+| **7 investigators, 11 stages, 13 failure modes** | the deterministic engine | `docs/architecture/investigation-pipeline.md` |
+| **69 tests** | unit + integration + chaos, plus a CI quality gate (accuracy ≥ 85%, FP ≤ 10%, citations ≥ 95%) | `.github/workflows/ci.yml` |
+| **₹0 / $0** | API spend — local models via Ollama, or no model at all | ADR-0003 |
+| **1 command** | `make eval` reproduces every number above | Makefile |
+
+**Numbers to avoid claiming as your own:** industry MTTR/downtime-cost figures. If asked,
+say "downtime cost estimates vary wildly by industry — what's constant is that most of
+MTTR is diagnosis, and that's the part we compress." Never present the benchmark as real-world
+accuracy — see the honesty section below; it's what makes the rest credible.
+
+**The honesty preamble (use it, it disarms diligence):**
+"Two caveats before you ask. The telemetry is synthetic, and the failure catalog and
+scenarios share an author — the methodology doc lists this under threats to validity.
+That's why the number that matters isn't 100%, it's the *machinery*: ground-truth
+benchmark, healthy controls, confounders, a confusion matrix, a published miss, and a CI
+gate that fails the build if accuracy regresses. Design partners on real telemetry are
+exactly the next step."
+
+---
+
+## 4. "How is it better?" — the comparison you can defend
+
+| | Observability suites (Datadog/NR/Dynatrace class) | Incident tools (PagerDuty/incident.io class) | "AI SRE" chatbots | **Sentinel** |
+|---|---|---|---|---|
+| Detects | ✓ alerts | pages people | — | ✓ deterministic rules + Alertmanager intake |
+| Explains **why** | anomaly widgets | — | unsupported prose | ranked hypotheses with cited evidence |
+| Shows contradictions | — | — | — | ✓ first-class, on the root-cause card |
+| Confidence | — | — | theatrical | re-derived from evidence; capped; low → human review |
+| Data locality | mostly SaaS | n/a | mostly SaaS | ✓ self-hosted, local model or none |
+| Acts | — | runbooks | sometimes, unsafely | proposed → four-eyes approval → verified, audited |
+| Measured accuracy | — | — | — | ✓ public, regenerable benchmark |
+| Injection surface | n/a | n/a | the whole log stream | telemetry treated as data; verifier rejects fabrications |
+
+Positioning sentence: **"We're not replacing your monitoring — we're the investigation
+layer on top of it."** That kills the "Datadog will crush you" objection: Sentinel reads
+the same OTel/Prometheus exhaust and is bought by teams who can't ship telemetry to a
+third-party AI anyway.
+
+## 5. Objection handling
+
+* **"Isn't this just RAG over logs?"** — No. Retrieval is one of seven investigators and
+  contributes at most a 0.25-weighted signal. The ranking comes from a deterministic
+  catalog + scorer; the benchmark runs at 100% with retrieval *and* the model disabled.
+* **"LLMs hallucinate."** — Ours can't hallucinate *evidence*: it can only cite handles the
+  system minted, the verifier deletes anything else, and in our study citation validity
+  was 100%. When the model was actively wrong (it reordered a correct answer away), the
+  guard caught it — and we published that.
+* **"Why will you beat Datadog Watchdog?"** — Different buyer constraint: our wedge is
+  *data can't leave* + *show me the evidence*. Also: they can't publish a benchmark like
+  this without inviting comparison; an open-source project grows on exactly that.
+* **"What breaks at scale?"** — Telemetry write volume (path: partitioning/ClickHouse
+  behind the same store interface), retrieval (pgvector, ADR-0004), hand-tuned catalog
+  weights (path: learned scoring once labelled real incidents exist). All written down.
+* **"Where's the moat?"** — The failure-mode catalog + verification corpus compounds with
+  every design partner; the benchmark becomes the category's yardstick; local-first is a
+  structural position SaaS incumbents can't easily follow.
+
+---
+
+## 6. Targeted clients & companies
+
+**Ideal customer profile (ICP):** 30–500 engineers, 10–200 services, an on-call rotation
+that hurts, telemetry already flowing (OTel/Prometheus/ELK), and at least one reason data
+cannot go to a third-party AI (regulation, contracts, or sovereignty).
+
+**Segment A — regulated & data-sensitive (the wedge, sell first):**
+fintech/payments (Razorpay, PhonePe, Paytm, Juspay, Stripe-class processors, NPCI
+ecosystem partners), banking/insurance platform teams (HDFC, ICICI, Bajaj Finserv tech
+arms), health-tech (Practo, PharmEasy, Innovaccer), defence/gov-adjacent SaaS. *Pitch
+angle: "AI incident analysis your compliance team will actually approve — nothing leaves
+your VPC."*
+
+**Segment B — scaled consumer platforms with brutal on-call:**
+e-commerce & delivery (Flipkart, Meesho, Zomato, Swiggy, Zepto, BigBasket), mobility
+(Ola, Uber-scale regional players), travel (MakeMyTrip, Ixigo), gaming/streaming (Dream11,
+Hotstar-class). *Pitch angle: "one incident, not three; minutes of diagnosis, not hours —
+during your peak-sale war rooms."*
+
+**Segment C — mid-market SaaS & platform-engineering teams globally:**
+companies (Postman, Browserstack, Freshworks, Zoho-scale and smaller) standardising on
+OpenTelemetry with 2–10-person platform teams who own reliability but can't afford a
+Datadog-everything bill. *Pitch angle: "open-source core, runs beside what you have,
+measurable before you pay anything."*
+
+**Segment D — MSPs / SRE consultancies & hosting providers:**
+firms operating reliability for many clients (One2N-style SRE consultancies, managed
+Kubernetes providers, regional clouds like E2E Networks). *Pitch angle: multi-tenant
+control plane roadmap; they become distribution.*
+
+**Who not to chase yet:** 5-person startups (no incident volume), and Fortune-100 with
+entrenched Dynatrace contracts (18-month cycles). Land mid-market, expand up.
+
+**First-10-conversations list (practical):** engineering leaders you can reach at
+Segment A/B companies above + open-source channels: CNCF/OpenTelemetry community, SRE
+India / SREcon, r/sre, Hacker News "Show HN", Kubernetes Slack #observability. The
+GitHub repo *is* the top of funnel; the benchmark is the demo hook.
+
+**Investor targeting:** seed funds with dev-tools/infra theses and open-source
+portfolios — in India: Accel India, Peak XV Surge, Blume, Together Fund, Neon; global
+OSS-friendly: OSS Capital, Essence VC, Heavybit, boldstart, Uncorrelated. Angels who
+built devtools/observability companies. Lead with the benchmark culture — that's what
+differentiates a "GPT wrapper" pitch from an infrastructure pitch.
+
+---
+
+## 7. The live demo script (5 minutes, do this while talking)
+
+1. Open the dashboard (Vercel) → Overview: 12 services, healthy.
+2. Chaos Lab → `payment-service` / `db_pool_exhaustion` → **Inject**. "We're breaking
+   production on purpose. Sentinel is not told what we injected."
+3. Overview: watch payment go red, then order-service, gateway, frontend. "Cascade."
+4. Incidents: **one** incident, primary re-pointed to payment-service. "Symptoms merged,
+   suspect identified by walking the dependency graph."
+5. Incident page: root-cause card — *Database connection-pool exhaustion*, ~87%, with the
+   contradiction ("CPU stayed flat") visible. "Calibrated, not theatrical."
+6. Why? tab: ask "Why not CPU saturation?" → cited answer with counter-evidence.
+7. Evidence graph tab. "This is what the verifier walks."
+8. Remediation: request → approve (four-eyes) → execute rollback → verified + audit.
+9. Evaluation page: the 119-case table. "You don't have to believe me — run `make eval`."
+
+Fallback if the model/backend is cold: everything still works — the deterministic
+narrator takes over and the UI says so. That *is* the pitch.
+
+---
+
+## 8. Business model (when asked)
+
+Open-source core (Apache-2.0) → paid: enterprise adapters (Kubernetes/Argo/feature-flag
+execution), SSO/OIDC + compliance pack, multi-tenant control plane, supported builds, and
+eventually a managed control plane with the data plane staying on-prem. Standard
+open-core motion: the free tier is the whole investigation engine — adoption first,
+monetise operations at scale.
+
+## 9. Close
+
+"Reality → evidence → hypotheses → verification → human decision. That architecture is
+the product. The LLM is the least interesting part — and that's exactly why this works."
