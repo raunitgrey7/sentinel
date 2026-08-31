@@ -1,8 +1,7 @@
 # LinkedIn post (ready to paste)
 
-> **Attach image:** `docs/pitch/assets/incident.jpg` (the root-cause card — the money shot),
-> or `docs/pitch/assets/overview.jpg` for the full-dashboard look.
-> **Before posting:** replace `https://sentinel-phi-seven-74.vercel.app` with the deployed frontend link.
+> **Attach image:** `docs/pitch/assets/live-incident.jpg` — the root-cause card from the LIVE deployment
+> (95% confidence, cited evidence, the offending commit). Alternative: `live-overview.jpg`.
 > Post as: text + 1 image. First line matters most — LinkedIn truncates after ~3 lines.
 
 ---
