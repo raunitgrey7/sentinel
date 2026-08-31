@@ -6,6 +6,12 @@
 
 ---
 
+**Live demo:** [sentinel-phi-seven-74.vercel.app](https://sentinel-phi-seven-74.vercel.app) — dashboard on Vercel, backend on Render's free tier
+([API docs](https://sentinel-api-mf68.onrender.com/docs)). Login `admin@sentinel.local` / `admin12345`, then break something in the Chaos Lab.
+*Free-tier note: the backend spins down when idle — the first request can take ~a minute to wake it, and demo data resets on restart.*
+
+---
+
 Sentinel is an open-source, self-hosted platform that **detects production incidents,
 correlates logs, metrics, traces, deployments and code changes, investigates probable
 root causes, and produces evidence-backed incident reports and remediation plans** — with

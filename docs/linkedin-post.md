@@ -2,7 +2,7 @@
 
 > **Attach image:** `docs/pitch/assets/incident.jpg` (the root-cause card — the money shot),
 > or `docs/pitch/assets/overview.jpg` for the full-dashboard look.
-> **Before posting:** replace `⟨LIVE-DEMO-URL⟩` with the deployed frontend link.
+> **Before posting:** replace `https://sentinel-phi-seven-74.vercel.app` with the deployed frontend link.
 > Post as: text + 1 image. First line matters most — LinkedIn truncates after ~3 lines.
 
 ---
@@ -34,7 +34,7 @@ And my favourite result is a failure: a small local model flipped a correct answ
 
 Built with Python, FastAPI, PostgreSQL, Redis, OpenTelemetry, Prometheus, Grafana, Next.js, and Ollama — plus a seven-service demo shop with a 14-fault chaos engine you can break yourself.
 
-🔗 Live demo: ⟨LIVE-DEMO-URL⟩ (login on the page — break something in the Chaos Lab, then ask the incident "Why?")
+🔗 Live demo: https://sentinel-phi-seven-74.vercel.app (login on the page — break something in the Chaos Lab, then ask the incident "Why?")
 ⭐ Source, docs, ADRs, threat model, benchmark: https://github.com/raunitgrey7/sentinel
 
 If you run an SRE/platform team and want to try this on real telemetry (it ingests OpenTelemetry and Alertmanager directly), my DMs are open. Feedback, stars and brutal code review equally welcome. 🙏
@@ -54,7 +54,7 @@ Sentinel: open-source, local-first AI incident investigation.
 → 119-case public benchmark: 100% top-1 accuracy, 0% false positives, 0.39s median
 → Runs on your infra. Local LLM via Ollama or no model at all. $0 API spend.
 
-Live demo: ⟨LIVE-DEMO-URL⟩ · Code: https://github.com/raunitgrey7/sentinel
+Live demo: https://sentinel-phi-seven-74.vercel.app · Code: https://github.com/raunitgrey7/sentinel
 
 Break it yourself: inject a database-pool exhaustion in the Chaos Lab, watch it find the bad deployment, then ask it "Why not CPU saturation?" — it answers with citations and counter-evidence.
 
