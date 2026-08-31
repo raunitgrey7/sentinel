@@ -16,7 +16,9 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = REPO_ROOT / "data"
+# In a source checkout this is <repo>/data; in a container image the package lives in
+# site-packages, so deployments must set SENTINEL_DATA_DIR (or SENTINEL_DATABASE_URL).
+DATA_DIR = Path(os.environ.get("SENTINEL_DATA_DIR", str(REPO_ROOT / "data")))
 
 
 class Settings(BaseSettings):

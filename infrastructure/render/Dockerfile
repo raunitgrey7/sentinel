@@ -14,6 +14,8 @@ COPY infrastructure/docker/entrypoint.sh /usr/local/bin/sentinel-entrypoint
 RUN chmod +x /usr/local/bin/sentinel-entrypoint && useradd -m -u 1000 sentinel && mkdir -p /app/data && chown -R sentinel /app
 USER sentinel
 ENV SENTINEL_ROLE=space \
+    SENTINEL_DATA_DIR=/app/data \
+    SENTINEL_DATABASE_URL=sqlite+aiosqlite:////app/data/sentinel.db \
     PORT=10000 \
     SENTINEL_ENV=dev \
     SENTINEL_AUTO_MIGRATE=true \
